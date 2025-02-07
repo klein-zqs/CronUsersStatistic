@@ -54,6 +54,9 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
                 $this->activateTab('statistics');
                 $this->showStatistics();
                 break;
+            case 'save':
+                $this->$cmd();
+                break;
             case 'configure':
             default:
                 $this->activateTab('config');
@@ -96,7 +99,7 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $text = new ilTextInputGUI($this->getPluginObject()->txt("email_recipient"), "email_recipient");
         $text->setValue($setting->get("email_recipient"));
         $text->setInfo($this->getPluginObject()->txt("email_recipient_info"));
-        $text->setRequired(true);
+        // $text->setRequired(true);
         $form->addItem($text);
 
         return $form;

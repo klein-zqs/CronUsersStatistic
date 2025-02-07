@@ -1,6 +1,7 @@
 <?php
 
 include_once("./Services/Cron/classes/class.ilCronJob.php");
+use ILIAS\Cron\Schedule\CronJobScheduleType;
 
 class ilCronUsersStatisticCronJob extends ilCronJob
 {
@@ -70,9 +71,9 @@ class ilCronUsersStatisticCronJob extends ilCronJob
         return false;
     }
 
-    public function getDefaultScheduleType(): int
+    public function getDefaultScheduleType(): CronJobScheduleType
     {
-        return self::SCHEDULE_TYPE_DAILY;
+        return CronJobScheduleType::SCHEDULE_TYPE_DAILY;
     }
 
     public function getDefaultScheduleValue(): int
