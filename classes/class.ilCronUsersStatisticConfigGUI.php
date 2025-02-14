@@ -29,6 +29,7 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
     protected ilCtrl $ctrl;
     protected ilLanguage $lng;
     protected $ilDB;  // Declare the database object
+    protected $cron_users_statistic_repository;
 
     public function __construct()
     {
@@ -37,6 +38,7 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $this->ctrl = $DIC->ctrl();
         $this->lng = $DIC->language();
         $this->ilDB = $DIC->database();  // Add this line to inject the database object
+        $this->cron_users_statistic_repository = new CronUsersStatisticRepository($this->ilDB);
 
     }
 
@@ -128,9 +130,10 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $this->tpl->setTitle($this->lng->txt("usr_statistics"));
 
         // Query the database to get statistics data
-        $query = "SELECT * FROM crn_usr_statistics ORDER BY stat_date DESC";
-        $res = $this->ilDB->query($query);
+        // $query = "SELECT * FROM crn_usr_statistics ORDER BY stat_date DESC";
+        // $res = $this->ilDB->query($query);
 
+        $stats = $this->cron_users_statistic_repository->getStats();
         // Build HTML table to display results
         $table_html = "<table class='table'>
                     <thead>
@@ -141,13 +144,14 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
                         </tr>
                     </thead>
                     <tbody>";
-
-        while ($row = $this->ilDB->fetchAssoc($res)) {
+        
+        foreach ($stats as $stat) {
+        // while ($row = $this->ilDB->fetchAssoc($res)) {
             $table_html .= "<tr>
-                        <td>{$row['stat_date']}</td>
-                        <td>{$row['user_count']}</td>
-                        <td>{$row['created_at']}</td>
-                        </tr>";
+                <td>" . htmlspecialchars($stat['stat_date']) . "</td>
+                <td>" . htmlspecialchars((string)$stat['user_count']) . "</td>
+                <td>" . htmlspecialchars($stat['created_at']) . "</td>
+            </tr>";
         }
 
         $table_html .= "</tbody></table>";

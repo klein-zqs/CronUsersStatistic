@@ -5,6 +5,14 @@ use ILIAS\Cron\Schedule\CronJobScheduleType;
 
 class ilCronUsersStatisticCronJob extends ilCronJob
 {
+    // private CronUsersStatisticRepository $cron_users_statistic_repository;
+
+    // public function __construct() {
+    //     global $ilDB;
+    //     // $this->db = $ilDB;
+    //     $this->cron_users_statistic_repository = new CronUsersStatisticRepository($ilDB);
+    // }
+
     public function getId() : string
     {
         return "crn_usr_statistics";
@@ -23,31 +31,35 @@ class ilCronUsersStatisticCronJob extends ilCronJob
     public function run(): ilCronJobResult
     {
         global $ilDB, $ilLog;
-
         $result = new ilCronJobResult();
         $ilLog->write("UserStatisticsCronJob: Starting cron job.");
+        $cron_users_statistic_repository = new CronUsersStatisticRepository($ilDB);
 
         try {
             // Logic to record daily logins
             $yesterday = date("Y-m-d", strtotime("-1 day"));
-            $query = "
-                SELECT COUNT(DISTINCT usr_id) AS user_count
-                FROM usr_data
-                WHERE DATE(last_login) = " . $ilDB->quote($yesterday, "date");
+            // $query = "
+            //     SELECT COUNT(DISTINCT usr_id) AS user_count
+            //     FROM usr_data
+            //     WHERE DATE(last_login) = " . $ilDB->quote($yesterday, "date");
 
-            $res = $ilDB->query($query);
-            $row = $ilDB->fetchAssoc($res);
-            $user_count = $row['user_count'];
+            // $res = $ilDB->query($query);
+            // $row = $ilDB->fetchAssoc($res);
+            // $user_count = $row['user_count'];
+            $user_count = $cron_users_statistic_repository->getUserCount($yesterday);
 
             // Generate the next id using the sequence
-            $next_id = $ilDB->nextId("crn_usr_statistics");
+            // $next_id = $ilDB->nextId("crn_usr_statistics");
+            $next_id = $cron_users_statistic_repository->getNextId();
+            $cron_users_statistics_info = new CronUsersStatisticInfo($next_id, $yesterday, $user_count, $ilDB->now());
+            $cron_users_statistic_repository->insert($cron_users_statistics_info);
+            // $ilDB->insert("crn_usr_statistics", [
+            //     "id" => ["integer", $next_id],
+            //     "stat_date" => ["date", $yesterday],
+            //     "user_count" => ["integer", $user_count],
+            //     "created_at" => ["timestamp", $ilDB->now()],
+            // ]);
 
-            $ilDB->insert("crn_usr_statistics", [
-                "id" => ["integer", $next_id],
-                "stat_date" => ["date", $yesterday],
-                "user_count" => ["integer", $user_count],
-                "created_at" => ["timestamp", $ilDB->now()],
-            ]);
 
             $ilLog->write("UserStatisticsCronJob: Recorded $user_count users for date $yesterday.");
 
