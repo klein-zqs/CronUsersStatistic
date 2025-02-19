@@ -5,7 +5,7 @@
 The `CronUsersStatistic` plugin records the number of users who have logged into the ILIAS system each day. This data is collected via a daily cron job and stored in the `crn_usr_statistics` database table.
 
 ## Version
-v1.0.0
+v2.1.0
 
 ## Installation
 
