@@ -1,5 +1,6 @@
 <?php
 
+/** TODO: This class or at least the get fcts might not be needed. Observe and delete if necessary. */
 class CronUsersStatisticInfo {
     public function __construct(
         private int $id, 

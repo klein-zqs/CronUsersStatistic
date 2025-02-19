@@ -4,4 +4,11 @@ usr_statistics#:#User Statistics
 configuration#:#Configuration
 email_recipient_info#:#Email recipient
 save#:#Save
-
+start_date#:#Date From
+end_date#:#Date To
+filter_entries_by_date#:#Filter Entries by Date
+start_date_before_end_date#:#Start date must be before end date!
+date#:#Date
+user_count#:#User Count
+created_at#:#Created At
+statistics#:#Statistics

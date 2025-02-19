@@ -4,3 +4,11 @@ usr_statistics#:#Benutzerstatistik
 configuration#:#Konfiguration
 email_recipient_info#:#E-Mail-Empfänger
 save#:#Speichern
+start_date#:#Datum von
+end_date#:# Datum bis
+filter_entries_by_date#:#Einträge nach Datum filtern
+start_date_before_end_date#:#Das Startdatum muss vor dem Enddatum liegen!
+date#:#Datum
+user_count#:#Nutzeranzahl
+created_at#:#Erstellt am
+statistics#:#Statistik

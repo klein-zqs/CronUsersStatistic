@@ -28,8 +28,15 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
     protected ilGlobalTemplateInterface $tpl;
     protected ilCtrl $ctrl;
     protected ilLanguage $lng;
-    protected $ilDB;  // Declare the database object
+    // protected $ilDB;  // Declare the database object
     protected $cron_users_statistic_repository;
+    protected ILIAS\UI\Factory $ui_factory;
+    protected ILIAS\UI\Renderer $ui_renderer;
+    protected $df;
+    protected $refinery;
+    protected $request;
+    protected $current_user_date_format;
+    protected $short_date_fomat;
 
     public function __construct()
     {
@@ -37,9 +44,17 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $this->tpl = $DIC->ui()->mainTemplate();
         $this->ctrl = $DIC->ctrl();
         $this->lng = $DIC->language();
-        $this->ilDB = $DIC->database();  // Add this line to inject the database object
-        $this->cron_users_statistic_repository = new CronUsersStatisticRepository($this->ilDB);
-
+        $ilDB = $DIC->database();  // Add this line to inject the database object
+        $this->cron_users_statistic_repository = new CronUsersStatisticRepository($ilDB);
+        $this->ui_factory = $DIC['ui.factory'];
+        $this->ui_renderer = $DIC['ui.renderer'];
+        $this->df = new \ILIAS\Data\Factory();
+        $this->refinery = $DIC['refinery'];
+        $this->request = $DIC->http()->request();
+        $this->current_user_date_format = $this->df->dateFormat()->withTime24(
+            $DIC['ilUser']->getDateFormat()
+        );
+        $this->short_date_fomat = $this->df->dateFormat()->germanShort();
     }
 
     /**
@@ -52,18 +67,21 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $this->setTabs();
 
         switch ($cmd) {
-            case 'showStatistics':
-                $this->activateTab('statistics');
-                $this->showStatistics();
-                break;
             case 'save':
                 $this->$cmd();
                 break;
-            case 'configure':
+            case 'showStatistics':
             default:
-                $this->activateTab('config');
-                $this->configure();
+                $this->activateTab('statistics');
+                $this->showStatistics();
                 break;
+            
+            // Configure not needed right now
+            // case 'configure':
+            // default:
+            //     $this->activateTab('config');
+            //     $this->configure();
+            //     break;
         }
     }
 
@@ -76,6 +94,7 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
 
     /**
      * Show settings screen
+     * Not needed right now
      */
     public function configure(?ilPropertyFormGUI $form = null) : void
     {
@@ -127,35 +146,58 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
     {
         global $tpl;
 
-        $this->tpl->setTitle($this->lng->txt("usr_statistics"));
+        $this->tpl->setTitle($this->getPluginObject()->txt("usr_statistics"));
 
-        // Query the database to get statistics data
-        // $query = "SELECT * FROM crn_usr_statistics ORDER BY stat_date DESC";
-        // $res = $this->ilDB->query($query);
+        // Form for time interval filter input:
+        // Duration does only work if start and end time are both given. Therefore switched to use two dateTime input fields instead 
+        // $duration = $this->ui_factory->input()->field()->duration("Pick a time-span", "");
+        $start_date = $this->ui_factory->input()->field()
+            ->dateTime($this->getPluginObject()->txt("start_date"), "");
+        $end_date = $this->ui_factory->input()->field()
+            ->dateTime($this->getPluginObject()->txt("end_date"), "");
 
-        $stats = $this->cron_users_statistic_repository->getStats();
-        // Build HTML table to display results
-        $table_html = "<table class='table'>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>User Count</th>
-                            <th>Created At</th>
-                        </tr>
-                    </thead>
-                    <tbody>";
+        $section = $this->ui_factory->input()->field()->section(
+            ['start_date' => $start_date, 'end_date' => $end_date], // Inputs inside the section
+            $this->getPluginObject()->txt("filter_entries_by_date") // The section title
+        );
+        $form = $this->ui_factory->input()->container()->form()->standard(
+            '#',
+            [
+                'filter' => $section
+            ]
+        )->withAdditionalTransformation(
+            $this->refinery->custom()->transformation(
+                fn($v) =>[$v['filter']['start_date'] ?? null, $v['filter']['end_date'] ?? null] 
+            )
+        )->withAdditionalTransformation(
+            $this->refinery->custom()->constraint(
+                function ($v) {
+                    $start = $v[0];
+                    $end = $v[1];
+                    
+                    if (empty($start) || empty($end)) {
+                        return true;
+                    }
+                    
+                    return $end >= $start;
+                }, $this->getPluginObject()->txt("start_date_before_end_date")
+            )
+        )->withRequest($this->request);
         
-        foreach ($stats as $stat) {
-        // while ($row = $this->ilDB->fetchAssoc($res)) {
-            $table_html .= "<tr>
-                <td>" . htmlspecialchars($stat['stat_date']) . "</td>
-                <td>" . htmlspecialchars((string)$stat['user_count']) . "</td>
-                <td>" . htmlspecialchars($stat['created_at']) . "</td>
-            </tr>";
-        }
+        $filter = $form->getData() ?? [null, null];
 
-        $table_html .= "</tbody></table>";
+        // UI DATA TABLE
+        $columns = [
+            'stat_date' => $this->ui_factory->table()->column()->date($this->getPluginObject()->txt("date"), $this->short_date_fomat),
+            'user_count' => $this->ui_factory->table()->column()->number($this->getPluginObject()->txt("user_count")),
+            'created_at' => $this->ui_factory->table()->column()->date($this->getPluginObject()->txt("created_at"), $this->current_user_date_format)->withIsOptional(true),
+        ];
+        $table = $this->ui_factory->table()->data('Stats', $columns, $this->cron_users_statistic_repository)->withFilter($filter);
 
+        $table_html = $this->ui_renderer->render([
+            $form,
+            $table->withRequest($this->request)
+        ]);
         // Set the content for the statistics tab
         $tpl->setContent($table_html);
     }
@@ -165,15 +207,16 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
     {
         global $ilTabs;
 
-        $ilTabs->addTab(
-            "config",
-            $this->lng->txt("configuration"),
-            $this->ctrl->getLinkTarget($this, "configure")
-        );
+        // Config not needed for now
+        // $ilTabs->addTab(
+        //     "config",
+        //     $this->lng->txt("configuration"),
+        //     $this->ctrl->getLinkTarget($this, "configure")
+        // );
 
         $ilTabs->addTab(
             "statistics",
-            $this->lng->txt("statistics"),
+            $this->getPluginObject()->txt("statistics"),
             $this->ctrl->getLinkTarget($this, "showStatistics")
         );
     }
