@@ -54,7 +54,10 @@ class ilCronUsersStatisticConfigGUI extends ilPluginConfigGUI
         $this->current_user_date_format = $this->df->dateFormat()->withTime24(
             $DIC['ilUser']->getDateFormat()
         );
-        $this->short_date_fomat = $this->df->dateFormat()->germanShort();
+        $this->short_date_fomat = $this->df->dateFormat()->amend(
+            $DIC['ilUser']->getDateFormat()
+        )->get();
+        //$this->df->dateFormat()->germanShort();
     }
 
     /**
